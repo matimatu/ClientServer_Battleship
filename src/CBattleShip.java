@@ -50,7 +50,7 @@ public class CBattleShip {
         //TODO
         return sbRules.toString();
     }
-    public String displayGrid(CPlayer player){
+    public String displayGrid(CPlayer player,boolean isEnemy){
         StringBuilder sb = new StringBuilder();
         char letter = 'A';
         for (int i = 0; i < gridSize; i++)
@@ -64,7 +64,7 @@ public class CBattleShip {
             for(int c = 0; c < player.shipGrid[r].length;c++)
             {
                 String gridCell = player.shipGrid[r][c];
-                String symbol = getSymbol(gridCell);
+                String symbol = getSymbol(gridCell,isEnemy);
                 sb.append("|_" + symbol + "_|" );
             }
             sb.append("\n" );
@@ -72,12 +72,14 @@ public class CBattleShip {
         return sb.toString();
     }
 
-    private String getSymbol(String gridCell) {
+    private String getSymbol(String gridCell,boolean isEnemy) {
         String symbol;
-        if  (   gridCell.equals(String.valueOf(ShipType.little)) ||
-                gridCell.equals(String.valueOf(ShipType.medium))||
-                gridCell.equals(String.valueOf(ShipType.large))   )
-            symbol = "O";
+        if  (gridCell.equals(String.valueOf(ShipType.little)))
+            symbol = isEnemy ? " " : "1";
+        else if(gridCell.equals(String.valueOf(ShipType.medium))&& !isEnemy)
+            symbol = isEnemy ? " " : "2";
+        else if (gridCell.equals(String.valueOf(ShipType.large))&& !isEnemy)
+            symbol = isEnemy ? " " : "3";
         else if ( gridCell.equals(MISSED))
             symbol = "/";
         else if (gridCell.equals(HIT))
