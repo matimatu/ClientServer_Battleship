@@ -5,8 +5,9 @@ import java.util.Arrays;
 import java.util.List;
 
 public class CBattleShip {
-    public static final String MISSED = "missed";
-    public static final String HIT = "hit";
+    static final String MISSED = "missed";
+    static final String HIT = "hit";
+    static final int NUM_SINKINGS_TO_LOSE = 1;
     static int gridSize;
     CPlayer P1;
     CPlayer P2;
@@ -15,6 +16,7 @@ public class CBattleShip {
     int numShipLittle;
     int numShipMedium;
     int numShipLarge;
+    boolean ended;
 
     enum ShipType {
         little,     //1 piece
@@ -29,14 +31,15 @@ public class CBattleShip {
     }
     public CBattleShip()
     {
+        gridSize = 6;
         P1 = new CPlayer();
         P2 = new CPlayer();
-        gridSize = 6;
         totalShipsToInsert = 3;
         totalShipsToSink = 2;
         numShipLarge = 1;
         numShipMedium = 1;
         numShipLittle = 1;
+        ended = false;
     }
     public void startGame(){
 
@@ -47,45 +50,43 @@ public class CBattleShip {
         //TODO
         return sbRules.toString();
     }
-    private void displayGrid(CPlayer player){
+    public String displayGrid(CPlayer player){
         StringBuilder sb = new StringBuilder();
+        char letter = 'A';
+        for (int i = 0; i < gridSize; i++)
+        {
+            sb.append("   " + (letter++) + " ");
+        }
+        sb.append("\n");
         for(int r = 0; r <player.shipGrid.length; r++)
         {
+            sb.append(r);
             for(int c = 0; c < player.shipGrid[r].length;c++)
             {
                 String gridCell = player.shipGrid[r][c];
-                String symbol;
-//                switch(gridCell)
-//                {
-//                    case "little":
-//                    case "medium":
-//                    case "large":
-//                        symbol = "O";
-//                        break;
-//                    case "":
-//                        symbol = "";
-//                    default:
-//                        throw new IllegalStateException("Unexpected value: " + gridCell);
-//                }
-                if  (   gridCell.equals(String.valueOf(ShipType.little)) ||
-                        gridCell.equals(String.valueOf(ShipType.medium))||
-                        gridCell.equals(String.valueOf(ShipType.large))   )
-                    symbol = "O";
-                else if ( gridCell.equals(MISSED))
-                    symbol = "/";
-                else if (gridCell.equals(HIT))
-                    symbol = "X";
-                else if (gridCell.isEmpty())
-                    symbol = "";
-                else
-                    throw new IllegalStateException("Unexpected value: " + gridCell);
-                sb.append("| " + "  \n");
-                sb.append("| " + " " + symbol + "\n");
-                sb.append("| " + "  \n");
-                sb.append("___" + "  \n");
-                //TODO
+                String symbol = getSymbol(gridCell);
+                sb.append("|_" + symbol + "_|" );
             }
+            sb.append("\n" );
         }
+        return sb.toString();
+    }
+
+    private String getSymbol(String gridCell) {
+        String symbol;
+        if  (   gridCell.equals(String.valueOf(ShipType.little)) ||
+                gridCell.equals(String.valueOf(ShipType.medium))||
+                gridCell.equals(String.valueOf(ShipType.large))   )
+            symbol = "O";
+        else if ( gridCell.equals(MISSED))
+            symbol = "/";
+        else if (gridCell.equals(HIT))
+            symbol = "X";
+        else if (gridCell.isEmpty())
+            symbol = " ";
+        else
+            throw new IllegalStateException("Unexpected value: " + gridCell);
+        return symbol;
     }
 
     private List<Pair<Integer,Integer>>  extractCoordinates(String input)
@@ -139,9 +140,13 @@ public class CBattleShip {
             default -> throw new IllegalStateException("Unexpected value: " + shipType);
         }
         if(!validateCoordinates(currPlayer,coordList,numExpectedCoord)) return false;
-        for(Pair<Integer,Integer> cord : coordList)
+        for(Pair<Integer,Integer> coord : coordList)
         {
-            currPlayer.shipGrid[cord.getKey()][cord.getValue()] = String.valueOf(shipType);  //key is the row number,value is column number
+            int row = coord.getKey();
+            int col = coord.getValue();
+            if(!currPlayer.shipGrid[row][col].isEmpty())
+                return  false;           //the player inserted a coordinate already filled
+            currPlayer.shipGrid[row][col] = String.valueOf(shipType);  //key is the row number,value is column number
         }
         return  true;
     }
@@ -156,6 +161,7 @@ public class CBattleShip {
         int column = coord.getValue();
         if(playerToHit.shipGrid[row][column].isEmpty())
         {
+            playerToHit.shipGrid[row][column] = MISSED;
             return ShotOutcome.missed;
         }
 //        else if(playerToHit.shipGrid[coord.getKey()][coord.getValue()].equals(String.valueOf(ShipType.little))
@@ -170,63 +176,68 @@ public class CBattleShip {
                 for(int c = 0; c < playerToHit.shipGrid[r].length;c++)
                 {
                     if(playerToHit.shipGrid[r][c].equals(shipHitName))
+                    {
                         return ShotOutcome.hit;
+                    }
                 }
             }
+            playerToHit.sunkenShipsCount++;
             return ShotOutcome.hitAndSunk;
         }
     }
 
-    public boolean CheckWinningCondition(CPlayer playerToCheck)
+    public boolean CheckLosingCondition(CPlayer playerToCheck)
     {
-        for(int r = 0; r < playerToCheck.shipGrid.length; r++){
-            for(int c = 0; c < playerToCheck.shipGrid[r].length; c++){
-                if(!(playerToCheck.shipGrid[r][c].equals(MISSED)
-                    ||playerToCheck.shipGrid[r][c].equals(HIT)
-                    ||playerToCheck.shipGrid[r][c].isEmpty()))
-                {
-                    return false;
-                }
-            }
-        }
-        return  true;
+//        for(int r = 0; r < playerToCheck.shipGrid.length; r++){
+//            for(int c = 0; c < playerToCheck.shipGrid[r].length; c++){
+//                if(!(playerToCheck.shipGrid[r][c].equals(MISSED)
+//                    ||playerToCheck.shipGrid[r][c].equals(HIT)
+//                    ||playerToCheck.shipGrid[r][c].isEmpty()))
+//                {
+//                    return false;
+//                }
+//            }
+//        }
+//        return  true;
+        return playerToCheck.sunkenShipsCount == NUM_SINKINGS_TO_LOSE;
     }
 
     public boolean validateCoordinates(CPlayer player, List<Pair<Integer,Integer>> coordList,int numExpectedCoord){
-        if(coordList.isEmpty())return false;
-        for (int i = 0; i < coordList.size(); i++) {
-            if(i >= numExpectedCoord)
-                return false;
+        if(coordList.size() != numExpectedCoord)
+            return false;       //wrong number of coordinates expected
+        for (int i= 0;i < coordList.size(); i++) {
             Pair<Integer, Integer> coord = coordList.get(i);
             int row = coord.getKey();
             int col = coord.getValue();
             if (row >= gridSize || col >= gridSize)
-                return false;
+                return false;       //coordinate exceed grid size
             if (row < 0 || col < 0)
-                return false;
-            if (player.shipGrid[row][col].equals(HIT) || player.shipGrid[row][col].equals(MISSED))
-                return false;
+                return false;       //coordinate exceed grid size
+            if (player.shipGrid[row][col].equals(HIT) || player.shipGrid[row][col].equals(MISSED))  //control only for shots
+                return false;       //the shot already goes into that coordinate
+            //TODO control for coordinates near each other
         }
         return true;
     }
 
     public static class CPlayer{
         String[][] shipGrid;
-        int ShipsWreckedCount;
-
+        int sunkenShipsCount;       // number of sunken ships of the player
+        String name;
 
         public CPlayer()
         {
-            ShipsWreckedCount = 0;
+            sunkenShipsCount = 0;
             shipGrid = new String[gridSize][gridSize];
+            name = "";
             for (String[] strings : shipGrid) {
                 Arrays.fill(strings, "");
             }
-//            for (int r = 0; r < shipGrid.length; r++) {
-//                for (int c = 0; c < shipGrid[r].length; c++) {
-//                    shipGrid[r][c] = "";
-//                }
-//            }
+            //            for (int r = 0; r < shipGrid.length; r++) {
+            //                for (int c = 0; c < shipGrid[r].length; c++) {
+            //                    shipGrid[r][c] = "";
+            //                }
+            //            }
         }
     }
 }
