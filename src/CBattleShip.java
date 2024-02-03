@@ -7,10 +7,10 @@ import java.util.List;
 public class CBattleShip {
     static final String MISSED = "missed";
     static final String HIT = "hit";
-    static final int NUM_SINKINGS_TO_LOSE = 1;
+    static final int NUM_SINKINGS_TO_LOSE = 2;
     static int gridSize;
-    CPlayer P1;
-    CPlayer P2;
+//    CPlayer P1;
+//    CPlayer P2;
     int totalShipsToInsert;
     int totalShipsToSink;
     int numShipLittle;
@@ -32,8 +32,8 @@ public class CBattleShip {
     public CBattleShip()
     {
         gridSize = 6;
-        P1 = new CPlayer();
-        P2 = new CPlayer();
+//        P1 = new CPlayer();
+//        P2 = new CPlayer();
         totalShipsToInsert = 3;
         totalShipsToSink = 2;
         numShipLarge = 1;
@@ -60,12 +60,12 @@ public class CBattleShip {
         sb.append("\n");
         for(int r = 0; r <player.shipGrid.length; r++)
         {
-            sb.append(r);
+            sb.append(r + "|");
             for(int c = 0; c < player.shipGrid[r].length;c++)
             {
                 String gridCell = player.shipGrid[r][c];
                 String symbol = getSymbol(gridCell,isEnemy);
-                sb.append("|_" + symbol + "_|" );
+                sb.append("_" + symbol + "_|" );
             }
             sb.append("\n" );
         }
@@ -76,9 +76,9 @@ public class CBattleShip {
         String symbol;
         if  (gridCell.equals(String.valueOf(ShipType.little)))
             symbol = isEnemy ? " " : "1";
-        else if(gridCell.equals(String.valueOf(ShipType.medium))&& !isEnemy)
+        else if(gridCell.equals(String.valueOf(ShipType.medium)))
             symbol = isEnemy ? " " : "2";
-        else if (gridCell.equals(String.valueOf(ShipType.large))&& !isEnemy)
+        else if (gridCell.equals(String.valueOf(ShipType.large)))
             symbol = isEnemy ? " " : "3";
         else if ( gridCell.equals(MISSED))
             symbol = "/";
@@ -207,7 +207,9 @@ public class CBattleShip {
     public boolean validateCoordinates(CPlayer player, List<Pair<Integer,Integer>> coordList,int numExpectedCoord){
         if(coordList.size() != numExpectedCoord)
             return false;       //wrong number of coordinates expected
-        for (int i= 0;i < coordList.size(); i++) {
+        List<Pair<Integer,Integer>> coordNearList = new ArrayList<Pair<Integer,Integer>>();
+        for (int i= 0;i < coordList.size(); i++)
+        {
             Pair<Integer, Integer> coord = coordList.get(i);
             int row = coord.getKey();
             int col = coord.getValue();
@@ -217,7 +219,86 @@ public class CBattleShip {
                 return false;       //coordinate exceed grid size
             if (player.shipGrid[row][col].equals(HIT) || player.shipGrid[row][col].equals(MISSED))  //control only for shots
                 return false;       //the shot already goes into that coordinate
-            //TODO control for coordinates near each other
+            coordNearList.add(coord);
+
+            for(int x = 0; x < gridSize; x++)
+            {
+
+            }
+        }
+        boolean nearUp = false;
+        boolean nearDown = false;
+        boolean nearLeft = false;
+        boolean nearRight = false;
+
+        for (int i= 0;i < coordList.size(); i++)
+        {
+            Pair<Integer, Integer> coord = coordList.get(i);
+            int row = coord.getKey();
+            int col = coord.getValue();
+            boolean coordNear = false;
+            for(int j=i+1;j<coordList.size();j++)
+            {
+                int rowCurr = coordList.get(j).getKey();
+                int colCurr = coordList.get(j).getValue();
+                boolean repeatedCoord = row == rowCurr && col == colCurr;
+                if (repeatedCoord)
+                    return false;
+
+            }
+            //control on cells to be near each other
+            boolean nearCondition = false;
+            if(coordList.size() > 1)
+            {
+                for(int j=0;j<coordList.size();j++)
+                {
+                    int rowCurr = coordList.get(j).getKey();
+                    int colCurr = coordList.get(j).getValue();
+                    nearUp = rowCurr == row -1 && colCurr == col;
+                    nearDown =  rowCurr == row +1 && colCurr == col;
+                    nearLeft = rowCurr == row && colCurr == col-1;
+                    nearRight = rowCurr == row && colCurr == col+1;
+                    if(!nearCondition)
+                    {
+                        if(row == 0)
+                        {
+                            if(col == 0)
+                            {
+                                nearCondition = ( nearRight || nearDown );
+                            }
+                            else if(col ==gridSize-1)
+                            {
+                                nearCondition = ( nearLeft || nearDown);
+                            }
+                            else
+                            {
+                                nearCondition = (   nearLeft || nearUp || nearDown);
+                            }
+                        }
+                        else if (col == 0)
+                        {
+                            if(row ==gridSize-1)
+                            {
+                                nearCondition = ( nearUp || nearRight);
+                            }
+                            else
+                            {
+                                nearCondition = (   nearRight || nearUp || nearDown);
+                            }
+                        }
+                        else if(row == gridSize-1 && col == gridSize-1)
+                        {
+                            nearCondition = ( nearUp || nearLeft);
+                        }
+                        else {
+                            nearCondition = (nearLeft || nearRight || nearUp || nearDown);
+                        }
+                    }
+                    coordNear = nearCondition;
+                }
+                if(!coordNear)
+                    return false;
+            }
         }
         return true;
     }
