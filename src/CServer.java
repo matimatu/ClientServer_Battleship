@@ -1,5 +1,7 @@
 import java.net.*;
 import java.io.*;
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -13,20 +15,20 @@ class CServerThread extends Thread {
     CBattleShip battleShip;
     CBattleShip.CPlayer player1;
     CBattleShip.CPlayer player2;
-    Semaphore semaphore;
+    CyclicBarrier barrier;
     ReentrantLock lock;
     boolean done;
 
 
     public CServerThread(Socket socket1, Socket socket2,
                          CBattleShip battleShip, CBattleShip.CPlayer player1,
-                         CBattleShip.CPlayer player2, Semaphore semaphore,ReentrantLock lock) {
+                         CBattleShip.CPlayer player2, CyclicBarrier barrier,ReentrantLock lock) {
         this.client1 = socket1;
         this.client2 = socket2;
         this.battleShip = battleShip;
         this.player1 = player1;
         this.player2 = player2;
-        this.semaphore = semaphore;
+        this.barrier = barrier;
         this.lock = lock;
     }
 
@@ -44,22 +46,21 @@ class CServerThread extends Thread {
             outToClient2 = new PrintWriter(client2.getOutputStream(),true);
             outToClient1 = new PrintWriter(client1.getOutputStream(),true);
             //setting player name
-            semaphore.acquire();
             handleNickname();
-            semaphore.release();
+
             startGame();
             while(!done) //infinite loop to continue communication
             {
                 messageReceivedFromClient1 = inFromClient1.readLine();
                 if (messageReceivedFromClient1 == null || messageReceivedFromClient1.startsWith("/quit"))
                 {
-                    outToClient1.println(" (=>leaving the game...)" + "\n");
-                    System.out.println(battleShip.P1.name + " requested to leave the game  :" + messageReceivedFromClient1);
+                    outToClient1.println(" (=>leaving the game...)");
+                    System.out.println(player1.name + " requested to leave the game  :" + messageReceivedFromClient1);
                     break;
                 }
                 else
                 {
-                    outToClient2.println(battleShip.P1.name + ": " + messageReceivedFromClient1 + "\n");
+                    outToClient2.println(player1.name + ": " + messageReceivedFromClient1 + "\n");
                     System.out.println("Echo on server :" + messageReceivedFromClient1);
                 }
             }
@@ -67,7 +68,7 @@ class CServerThread extends Thread {
             inFromClient1.close();
             client1.close();
             System.out.println(client1 + " closed ");
-            outToClient2.println(" (=>" + battleShip.P1.name + " leaved the game)" + "\n");
+            outToClient2.println(" (=>" + player1.name + " leaved the game)" + "\n");
         }
         catch (Exception e)
         {
@@ -83,15 +84,18 @@ class CServerThread extends Thread {
         {
             System.out.println("sending info to client for login...");
             outToClient1.println("Please enter a username before playing");
-            battleShip.P1.name = inFromClient1.readLine();
-            System.out.println("player " + battleShip.P1.name + " logged in!");
-            outToClient1.println("Welcome to the battleship game " + battleShip.P1.name + "!");
+            player1.name = inFromClient1.readLine();
+            System.out.println("player " + player1.name + " logged in!");
+            outToClient1.println("Welcome to the battleship game " + player1.name + "!");
+            if(barrier.getNumberWaiting() == 0){
+                outToClient1.println("the other player is choosing his name...");
+            }
+            barrier.await();
         }
-        catch(IOException e)
-        {
+        catch(Exception e) {
             System.out.println(e.getMessage());
             System.out.println("Server error on handling username!");
-            System.exit(1);
+            shutdown();
         }
     }
     private void startGame()
@@ -102,14 +106,7 @@ class CServerThread extends Thread {
         try
         {
             shipPositioning();
-//            semaphore.release();
-//            if(semaphore.availablePermits() == 1)
-//                outToClient1.println("Waiting the other player to finish the ship positioning...");
-//            if(semaphore.availablePermits() == 2)
-//            {
-//                outToClient1.println("OK now we are ready to... battle!!");
-//                startBattle();
-//            }
+
             outToClient1.println("OK now we are ready to... battle!!");
             startBattle();
         }
@@ -149,8 +146,11 @@ class CServerThread extends Thread {
                 outToClient1.println("Wrong coordinates,try again!");
                 input3 = inFromClient1.readLine();
             }
+            if(barrier.getNumberWaiting() == 0)
+                outToClient1.println(player2.name + " is choosing his ships location...");
+            barrier.await();
         }
-      catch (IOException e){
+      catch (Exception e){
           System.out.println(e.getMessage());
           System.out.println("ERROR on ship positioning!");
           shutdown();
@@ -211,7 +211,7 @@ class CServerThread extends Thread {
         }
         //the game is over, sending feedbacks to the players
         outToClient1.println("The battle is over, you won!");
-        outToClient2.println("The battle is over, you lost! " + battleShip.P2.name + "won!");
+        outToClient2.println("The battle is over, you lost! " + player1.name + " won!");
         battleShip.ended = true;
         shutdown();
     }
@@ -231,7 +231,7 @@ class CServerThread extends Thread {
             }
             if(response.toLowerCase().equals("y"))
             {
-                outToClient1.println(battleShip.displayGrid(player1));
+                outToClient1.println(battleShip.displayGrid(player1,false));
             }
             outToClient1.println("Do you want to display other player's situation?(y/n)");
             while(true)
@@ -244,7 +244,7 @@ class CServerThread extends Thread {
             }
             if(response.toLowerCase().equals("y"))
             {
-                outToClient1.println(battleShip.displayGrid(player2));
+                outToClient1.println(battleShip.displayGrid(player2,true));
             }
         }
         catch(Exception e )
@@ -299,11 +299,13 @@ public class CServer {
             System.out.println("Cannot handle other connections");
             CBattleShip battleShip = new CBattleShip();
             //creating 2 threads to handle 2 different clients
-            Semaphore semaphore = new Semaphore(2);
+            CyclicBarrier barrier = new CyclicBarrier(2);
             ReentrantLock lock = new ReentrantLock(true);
-            serverThread1 = new CServerThread(socket1,socket2,battleShip,battleShip.P1,battleShip.P2,semaphore,lock);
+            CBattleShip.CPlayer player1 = new CBattleShip.CPlayer();
+            CBattleShip.CPlayer player2 = new CBattleShip.CPlayer();
+            serverThread1 = new CServerThread(socket1,socket2,battleShip,player1,player2,barrier,lock);
             serverThread1.start();
-            serverThread2 = new CServerThread(socket2,socket1,battleShip,battleShip.P2,battleShip.P1,semaphore,lock);
+            serverThread2 = new CServerThread(socket2,socket1,battleShip,player2,player1,barrier,lock);
             serverThread2.start();
         }
         catch (Exception e){

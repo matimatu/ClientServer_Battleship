@@ -92,7 +92,6 @@ public class CClient {
                         shutdown();
                     } else {
                         outToServer.println(messageFromUser);
-                        System.out.println("Message sent");
                     }
                 }
             } catch (IOException e) {
