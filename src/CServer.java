@@ -72,8 +72,9 @@ class CServerThread extends Thread {
         }
         catch (Exception e)
         {
-            System.out.println(e.getMessage());
             System.out.println("Server communicate error!");
+            System.out.println(e.getMessage());
+            e.printStackTrace();
             System.exit(1);
         }
     }
@@ -93,8 +94,9 @@ class CServerThread extends Thread {
             barrier.await();
         }
         catch(Exception e) {
-            System.out.println(e.getMessage());
             System.out.println("Server error on handling username!");
+            System.out.println(e.getMessage());
+            e.printStackTrace();
             shutdown();
         }
     }
@@ -112,9 +114,9 @@ class CServerThread extends Thread {
         }
         catch (Exception e)
         {
-            e.printStackTrace();
-            System.out.println(e.getMessage());
             System.out.println("error on waiting other threads!");
+            System.out.println(e.getMessage());
+            e.printStackTrace();
             System.exit(1);
         }
     }
@@ -150,11 +152,12 @@ class CServerThread extends Thread {
                 outToClient1.println(player2.name + " is choosing his ships location...");
             barrier.await();
         }
-      catch (Exception e){
-          System.out.println(e.getMessage());
-          System.out.println("ERROR on ship positioning!");
-          shutdown();
-      }
+        catch (Exception e){
+            System.out.println("ERROR on ship positioning!");
+            System.out.println(e.getMessage());
+            e.printStackTrace();
+            shutdown();
+        }
     }
 
     private void startBattle(){
@@ -201,8 +204,9 @@ class CServerThread extends Thread {
             }
             catch (IOException e)
             {
-                System.out.println(e.getMessage());
                 System.out.println("ERROR on reading coordinates of the shot from the player!");
+                System.out.println(e.getMessage());
+                e.printStackTrace();
                 shutdown();
             }
             finally {
@@ -243,15 +247,16 @@ class CServerThread extends Thread {
                     outToClient1.println("Wrong response,try again");
             }
             if(response.toLowerCase().equals("y"))
+
             {
                 outToClient1.println(battleShip.displayGrid(player2,true));
             }
         }
         catch(Exception e )
         {
-            e.printStackTrace();
+            System.out.println("Error on displaying grid situations");
             System.out.println(e.getMessage());
-            System.out.println("Error on displaying grid sitautions");
+            e.printStackTrace();
         }
 
     }
@@ -309,8 +314,9 @@ public class CServer {
             serverThread2.start();
         }
         catch (Exception e){
-            System.out.println(e.getMessage());
             System.out.println("Server acceptance error!");
+            System.out.println(e.getMessage());
+            e.printStackTrace();
             shutdown();
         }
     }
@@ -326,8 +332,9 @@ public class CServer {
         }
         catch (Exception e)
         {
-            System.out.println(e.getMessage());
             System.out.println("Server shutdown error!");
+            e.printStackTrace();
+            System.out.println(e.getMessage());
             System.exit(1);
         }
     }
