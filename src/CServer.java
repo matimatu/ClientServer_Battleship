@@ -6,17 +6,16 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.locks.ReentrantLock;
 
 class CServerThread extends Thread {
-    Socket client1;
-    Socket client2;
-    String messageReceivedFromClient1;
-    BufferedReader inFromClient1;
-    PrintWriter outToClient1;
-    PrintWriter outToClient2;
-    CBattleShip battleShip;
-    CBattleShip.CPlayer player1;
-    CBattleShip.CPlayer player2;
-    CyclicBarrier barrier;
-    ReentrantLock lock;
+    private final Socket client1;
+    private final Socket client2;
+    private BufferedReader inFromClient1;
+    private PrintWriter outToClient1;
+    private PrintWriter outToClient2;
+    private final CBattleShip battleShip;
+    private final CBattleShip.CPlayer player1;
+    private final CBattleShip.CPlayer player2;
+    private final CyclicBarrier barrier;
+    private final ReentrantLock lock;
     boolean done;
 
 
@@ -51,7 +50,7 @@ class CServerThread extends Thread {
             startGame();
             while(!done) //infinite loop to continue communication
             {
-                messageReceivedFromClient1 = inFromClient1.readLine();
+                String messageReceivedFromClient1 = inFromClient1.readLine();
                 if (messageReceivedFromClient1 == null || messageReceivedFromClient1.startsWith("/quit"))
                 {
                     outToClient1.println(" (=>leaving the game...)");
@@ -228,12 +227,12 @@ class CServerThread extends Thread {
             while(true)
             {
                 response = inFromClient1.readLine();
-                if((response.toLowerCase().equals("n")) || (response.toLowerCase().equals("y")))
+                if((response.equalsIgnoreCase("n")) || (response.equalsIgnoreCase("y")))
                     break;
                 else
                     outToClient1.println("Wrong response,try again");
             }
-            if(response.toLowerCase().equals("y"))
+            if(response.equalsIgnoreCase("y"))
             {
                 outToClient1.println(battleShip.displayGrid(player1,false));
             }
@@ -241,12 +240,12 @@ class CServerThread extends Thread {
             while(true)
             {
                 response = inFromClient1.readLine();
-                if((response.toLowerCase().equals("n")) || (response.toLowerCase().equals("y")))
+                if((response.equalsIgnoreCase("n")) || (response.equalsIgnoreCase("y")))
                     break;
                 else
                     outToClient1.println("Wrong response,try again");
             }
-            if(response.toLowerCase().equals("y"))
+            if(response.equalsIgnoreCase("y"))
 
             {
                 outToClient1.println(battleShip.displayGrid(player2,true));
